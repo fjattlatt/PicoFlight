@@ -1,0 +1,12 @@
+CAD/
+Datasheets/
+/Electronics
+KuleSensorer.txt
+NotesNextPCB.txt
+Code/MagnetometerRawData
+Code/Matlab
+Code/Todo.txt
+Code/main/.vscode
+Code/main/build
+Code/CProgramming/.vscode
+Code/CProgramming/main.exe
