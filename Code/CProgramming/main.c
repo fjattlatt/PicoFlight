@@ -17,6 +17,7 @@ void kill_column_below_in_place(int N, int diag_kk, double LUMat[N][N]);
 void find_permutation_matrix(int N, int diagonal_elem_kk, double M[N][N], double P[N][N]);
 void find_permutation_vector(int N, int diag_kk, int P[N], double LUMat[N][N]);
 void eye(int N,double A[N][N]);
+double vecnorm(int N, double x[N]);
 void zeromat(int N, int M,double A[N][M]); //Convert to mxn DONE
 void matcopy(int N, int M, const double A[N][M], double B[N][M]); //Convert to mxn DONE
 void matmatmul_small(int N, int M, double A[N][M], double B[M][N], double C[N][N]); //Convert to mxn DONE
@@ -66,6 +67,17 @@ double J[10][9];
 double JT[9][10];
 double JTJ[9][9];
 
+//Struct for samples
+
+typedef struct{
+    double x;
+    double y;
+    double z;
+}Sample;
+
+Sample Samples[1000];
+
+int load_samples_from_file(Sample* samples, int sample_count);
 
 int main()
 {
@@ -85,9 +97,30 @@ int main()
     // printvec_int(N,P_global);
     // update_global_permutation_vector(N,P0,P_global);
     // printvec_int(N,P_global);
-    LM_solver();
+    // LM_solver();
+    // printf("size = %d\n", sizeof(Samples));
+    load_samples_from_file(Samples, sizeof(Samples)/sizeof(Sample));
     printf("END OF PROGRAM\n");
     return 0;
+}
+
+int load_samples_from_file(Sample* samples, int sample_count)
+{
+    FILE* fptr;
+    fptr = fopen("../MagnetometerRawData/mag_cal.txt", "r");
+    if(!fptr){
+        printf("Failed to open file!\n");
+        return 1;
+    }
+    
+    for(int i = 0; i < sample_count; i++){
+        if(fscanf(fptr,"%lf,%lf,%lf",&samples[i].x, &samples[i].y, &samples[i].z) != 3){
+            printf("Read failed\n");
+            fclose(fptr);
+            return 2;
+        }
+    }
+    fclose(fptr);
 }
 
 void test_updated_functions()
@@ -241,6 +274,7 @@ void LM_solver()
     double g[9];
     evaluate_gradient_r(9,10,g,JT,r_vec);
     printvec(9,g);
+    printf("euclidean norm of g = %f\n", vecnorm(9,g));
 
     //Solve for the A-matrix, A = JTJ + lambda*I
     double lambda = 1E-4; //This worked in matlab
@@ -471,6 +505,14 @@ void matvecmul(int N, int M, double A[N][M], double x[M], double b[N])
             }
         }
     }
+}
+
+double vecnorm(int N, double x[N]){
+    double norm = 0;
+    for(int i = 0; i < N; i++){
+        norm += x[i]*x[i];
+    }
+    return sqrt(norm);
 }
 
 void vecscalmult(int N, double x[N], double y[N], double k){
