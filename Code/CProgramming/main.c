@@ -77,7 +77,7 @@ int main()
     // double x[3];
     // solve_linear_system_NXN(3,A,x,b);
     // printvec(3,x);
-    test_updated_functions();
+    // test_updated_functions();
     // int N = 4;
     // int P0[4] = {1,0,2,3};
     // int P_global[4] = {0,1,2,3};
@@ -85,7 +85,7 @@ int main()
     // printvec_int(N,P_global);
     // update_global_permutation_vector(N,P0,P_global);
     // printvec_int(N,P_global);
-    // LM_solver();
+    LM_solver();
     printf("END OF PROGRAM\n");
     return 0;
 }
@@ -93,70 +93,30 @@ int main()
 void test_updated_functions()
 {
     int N = 4;
-    int M = 4;
-    double A[N][M]; //VLA init, goes on the stack
-    double A_transposed[M][N];
-    double AAT[N][N];
-    zeromat(N,M,A);
-    zeromat(M,N,A_transposed);
-    zeromat(N,N,AAT);
-    set_4x4_mat(4,3,5,0,
-                1,5,0,9,
-                3,1,7,4,
-                5,3,1,1,A);
-    printf("A = \n");
-    printmat(N,M,A);
-    mat_transpose(N,M,A,A_transposed);
-    printf("AT = \n");
-    printmat(M,N,A_transposed);
-    matmatmul_no_alias(N,M,A,A_transposed,AAT);
-    printf("AAT = \n");
-    printmat(N,N,AAT);
-
-    printf("Add multiple of row to row testing\n");
-    printmat(N,M,A);
-    add_multiple_of_row_to_row(N,M,A,0,0,0,1.0);
-    printmat(N,M,A);
-
-    printf("Testing matscalmult function\n");
-    double F[3][3];
-    double O[3][3];
-    eye(3,F);
-    matscalmult(3,3,F,10,O);
-    printmat(3,3,O);
-
-    printf("Testing vecscal function\n");
-    double s[3] = {1.0, 2.0, 3.0};
-    vecscalmult(3,s,s,-0.1);
-    printvec(3,s);
 
     //Testing in-place PLU
-    double K[N][N];
-    set_4x4_mat(4,7,5,0,
-                1,5,0,9,
-                3,1,7,4,
-                5,6,1,1,K);
+    double A[N][N];
+    double P[N];
+    set_4x4_mat(1, 2, 3, 6,
+                6, 5, 3, 1,
+                9, 5, 7, 6,
+                2, 9, 5, 6,A);
+    double b[4] = {1,2,3,4};
+    //double b[4] = {3,4,2,1};
+    double ans[4];
+    //PLU_decomposition_NXN_in_place(N,P,A);
+    //solve_linear_system_NXN_in_place(N,A,ans,b);
+    //printvec(N,ans);
 
-    int permutation_vector[N];
-    // PLU_decomposition_NXN_in_place(N,permutation_vector,K);
-    // // double P[N][N];
-    // // double L[N][N];
-    // // double U[N][N];
-    // // PLU_decomposition_NXN(N,K,P,L,U);
-    // printf("LU-matrix containing L and U:\n");
-    // printmat(N,N,K);
-    int n = 7;
-    //int perm[7] = {0, 3, 2, 5, 4, 1, 6};
-    int perm[7] = {6, 3, 0, 5, 2, 1, 4};
-    //int perm[7] = {6, 1, 0, 3, 2, 5, 4};
-    double bvec[7] = {0, 1, 2, 3, 4, 5, 6};
-    printf("b before = \n");
-    printvec(n,bvec);
-    permute_vector_with_P(n,perm,bvec);
-    printf("b after = \n");
-    printvec(n,bvec);
-    printf("P after = \n");
-    printvec_int(n,perm);
+    // solve_lower_diagonal(N,A,ans,b);
+    // printf("Lower system solution = \n");
+    // printvec(N,ans);
+
+    // solve_upper_diagonal(N,A,ans,b);
+    // printf("Upper system solution = \n");
+    // printvec(N,ans);
+
+
     
 
 }
@@ -174,14 +134,12 @@ int PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N])
         find_permutation_vector(N, diag_kk, P_local, LUMat);
         switch_rows_with_P_below_diag(N, diag_kk, P_local, LUMat);
         kill_column_below_in_place(N, diag_kk, LUMat);
-        printf("Iteration = %d\nLUMat current state is:\n", diag_kk);
-        printmat(N,N,LUMat);
         update_global_permutation_vector(N, P_local, P);
     }
     //Add check the rank of U, do this by checking the fabs() of each pivot
     int rank = 0;
     for(int diag_kk = 0; diag_kk < N; diag_kk++){
-        if(fabs(LUMat[diag_kk][diag_kk]) > 0.0){
+        if(fabs(LUMat[diag_kk][diag_kk]) > 1.0E-7){
             rank++;
         }
     }
@@ -298,13 +256,9 @@ void LM_solver()
     //Switch sign of g
     vecscalmult(9,g,g,-1.0);
     double deltaX[9];
-    solve_linear_system_NXN(9,A,deltaX,g);
+    solve_linear_system_NXN_in_place(9,A,deltaX,g);
     printf("Solution to (JTJ + l*I)deltax = - g is \n");
     printvec(9,deltaX); //Is correct!
-
-    
-
-
 }
 
 void evaluate_gradient_r(int param_count, int sample_count, double g[param_count], double JT[param_count][sample_count], double r_vec[sample_count])
@@ -394,14 +348,13 @@ void solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double
     //U*x = y
     //L*y = c solve for y, then solve for x
     int P[N];
-    double c[N];
     double y[N];
     int rank = PLU_decomposition_NXN_in_place(N,P,A);
     if(rank < N){
         printf("System is rank-deficient!\n");
     }else{
-        //permute_vector_with_P();
-        solve_lower_diagonal(N,A,y,c);
+        permute_vector_with_P(N,P,b);
+        solve_lower_diagonal(N,A,y,b);
         solve_upper_diagonal(N,A,x,y);
     }
 }
@@ -430,8 +383,6 @@ void solve_linear_system_NXN(int N, double A[N][N], double x[N], double b[N])
 
 void permute_vector_with_P(int N, int P[N], double b[N])
 {
-    //This algorithm overwrites the P vector to save space.
-
     //There are two ways to interpret the effect of P on b:
     //1: P[i] tells where element b[i] goes in the updated b. Ie: b[P[i]] = b[i]
     //2: P[i] tells which element of b goes to b[i].          Ie: b[i] = b[P[i]]
@@ -467,7 +418,7 @@ void permute_vector_with_P(int N, int P[N], double b[N])
                 }
             }
         }else{
-            P[j] = - 1; //This is the case when P[j] = j; nothing needs to be done and we mark it as visited
+            P[j] = - 1; //This is the case when P[j] = j or when P[j] = - 1. We mark it as visited
         }
     }
 }
@@ -555,9 +506,9 @@ void solve_lower_diagonal(int N, double L[N][N], double x[N], double b[N])
 {
     //Solves for x in L*x=b
     for(int i = 0; i < N; i++){
-        x[i] = b[i]/L[i][i];
+        x[i] = b[i];
         for(int j = 0; j < i; j++){
-            x[i] = x[i] - L[i][j]*x[j]/L[i][i];
+            x[i] = x[i] - L[i][j]*x[j]; //We do not divide by L[i][i] as this is implicitly 1
         }
     }
 }
