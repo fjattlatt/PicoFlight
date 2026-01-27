@@ -2,6 +2,13 @@
 #include "stdlib.h"
 #include "math.h"
 
+//Struct for samples
+typedef struct{
+    double x;
+    double y;
+    double z;
+}Sample;
+
 void switch_rows_with_P_below_diag(int N, int diag_kk, int P[N], double A[N][N]);
 void update_global_permutation_vector(int N, const int P_update[N], int P[N]);
 void multiply_row(double A[][3], int r, double k);
@@ -25,6 +32,7 @@ void matmatmul_no_alias(int N, int M, double A[N][M], double B[M][N], double C[N
 void matmatmatmul_NXN(int N, double A[N][N], double B[N][N], double C[N][N], double D[N][N]); //Convert to mxn. IGNORE, too much shit to do and only used in square case anyway
 void matmatsub(int N, int M, double A[N][M], double B[N][M], double C[N][M]); //Convert to mxn DONE
 void matmatadd(int N, int M, double A[N][M], double B[N][M], double C[N][M]);
+void vecvecadd(int N, double a[N], double b[N], double c[N]);
 void init_matrices(int N, double A[N][N]); //Convert to mxn. IGNORE, this is just some shit
 void kill_column_below(int N, int diag_kk, double U[N][N], double L[N][N]);
 void set_3x3_mat(double a, double b, double c, 
@@ -56,28 +64,27 @@ void test_updated_functions();
 // - A magnetometer sample si of 3 parameters
 // - This should probably be given a struct to work with as the argument lists are getting long
 double evaluate_ri(int param_count, double opt_params[param_count], double si[3]);
-void evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], double samples[sample_count][3], double r_vec[sample_count]);
+void evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double r_vec[sample_count]);
 void evaluate_gradient_ri(int param_count, double opt_params[param_count], double si[3], double grad_ri[param_count]);
-void evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], double samples[sample_count][3], double J[sample_count][param_count]);
+void evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double J[sample_count][param_count]);
 void evaluate_gradient_r(int param_count, int sample_count, double g[param_count], double JT[param_count][sample_count], double r_vec[sample_count]); //gradient g = J^T*r
+void set_initial_guess_from_samples(int param_count, int sample_count, Sample* samples, double theta_0[param_count]); //Computes rough guess of the optimum solution
 void LM_solver();
 
 //Large variables for LM-solver
-double J[10][9];
-double JT[9][10];
-double JTJ[9][9];
+#define SAMPLE_COUNT 1000
+#define PARAMETER_COUNT 9
+double theta[PARAMETER_COUNT];
+double d_theta[PARAMETER_COUNT]; //72B, parameter increment
+double J[SAMPLE_COUNT][PARAMETER_COUNT]; //72kB
+double JT[PARAMETER_COUNT][SAMPLE_COUNT]; //72kB
+double JTJ[PARAMETER_COUNT][PARAMETER_COUNT]; //648B
+double residue_vec[SAMPLE_COUNT]; //8kB
+double gradient_vec[PARAMETER_COUNT];
+Sample Samples[SAMPLE_COUNT];//24kB
+//Total RAM required from this = 184.648kB, well within RP2350 RAM of 512kB, but optimizations can be done
 
-//Struct for samples
-
-typedef struct{
-    double x;
-    double y;
-    double z;
-}Sample;
-
-Sample Samples[1000];
-
-int load_samples_from_file(Sample* samples, int sample_count);
+int load_samples_from_file(const char* filepath, Sample* samples, int sample_count);
 
 int main()
 {
@@ -97,17 +104,16 @@ int main()
     // printvec_int(N,P_global);
     // update_global_permutation_vector(N,P0,P_global);
     // printvec_int(N,P_global);
-    // LM_solver();
+    LM_solver();
     // printf("size = %d\n", sizeof(Samples));
-    load_samples_from_file(Samples, sizeof(Samples)/sizeof(Sample));
     printf("END OF PROGRAM\n");
     return 0;
 }
 
-int load_samples_from_file(Sample* samples, int sample_count)
+int load_samples_from_file(const char* filepath, Sample* samples, int sample_count)
 {
     FILE* fptr;
-    fptr = fopen("../MagnetometerRawData/mag_cal.txt", "r");
+    fptr = fopen(filepath, "r");
     if(!fptr){
         printf("Failed to open file!\n");
         return 1;
@@ -235,64 +241,84 @@ void update_global_permutation_vector(int N, const int P_update[N], int P[N])
 
 void LM_solver()
 {
-    int param_count = 9;
-    int sample_count = 10;
-    double opt_params[9] = {0.00038548, 0.00040191, 0.00039854, 34.9519,74.1484,-25.0253, 7.9526E-6, 1.0102E-5, 3.2523E-5};
-    double r_vec[sample_count];
-
-    double samples[10][3] =
-    {
-    {20.5625, 45.6875, -65.9375},
-    {20.5625, 45.6875, -65.9375},
-    {21.2500, 47.1250, -65.9375},
-    {20.5625, 48.9375, -67.0625},
-    {20.5625, 48.9375, -67.0625},
-    {21.6250, 49.6250, -67.0625},
-    {21.6250, 49.6250, -67.0625},
-    {22.0000, 48.9375, -67.8750},
-    {22.3125, 48.1875, -67.4375},
-    {22.3125, 48.1875, -67.4375}
-    };
-
-    evaluate_r_vec(param_count,sample_count, opt_params,samples,r_vec);
-    printvec(sample_count,r_vec);
-    double si[3] = {1.0, 2.0, 3.0};
-    double grad_ri[9];
-    evaluate_gradient_ri(param_count,opt_params,si,grad_ri);
-    printf("gradient ri = \n");
-    printvec(param_count, grad_ri);
-    evaluate_jacobian_r(param_count, 10, opt_params,samples,J);
-    printf("J = \n");
-    printmat(10,9,J);
-    mat_transpose(10,9,J,JT);
-    printf("JT = \n");
-    printmat(9,10,JT);
-    matmatmul_no_alias(9,10,JT,J,JTJ);
-    printf("JTJ = \n");
-    printmat(9,9,JTJ);
-    printf("g = \n");
-    double g[9];
-    evaluate_gradient_r(9,10,g,JT,r_vec);
-    printvec(9,g);
-    printf("euclidean norm of g = %f\n", vecnorm(9,g));
-
-    //Solve for the A-matrix, A = JTJ + lambda*I
+    load_samples_from_file("../MagnetometerRawData/mag_cal.txt",Samples, sizeof(Samples)/sizeof(Sample));
+    set_initial_guess_from_samples(PARAMETER_COUNT, SAMPLE_COUNT,Samples,theta);
+    printvec(PARAMETER_COUNT, theta);
     double lambda = 1E-4; //This worked in matlab
-    double lambdaEye[9][9];
-    double A[9][9];
-    eye(9,lambdaEye);
-    matscalmult(9,9,lambdaEye,lambda,lambdaEye);
-    printmat(9,9,lambdaEye);
-    matmatadd(9,9,JTJ,lambdaEye,A);
-    printf("JTJ + l*I = \n");
-    printmat(9,9,A);
-    //Want to solve (JTJ + l*I)deltax = - g
-    //Switch sign of g
-    vecscalmult(9,g,g,-1.0);
-    double deltaX[9];
-    solve_linear_system_NXN_in_place(9,A,deltaX,g);
-    printf("Solution to (JTJ + l*I)deltax = - g is \n");
-    printvec(9,deltaX); //Is correct!
+    double lambdaEye[PARAMETER_COUNT][PARAMETER_COUNT];
+    double JTJ_plus_lambda_eye[PARAMETER_COUNT][PARAMETER_COUNT];
+    int iterations = 0;
+
+    do{
+        evaluate_r_vec(PARAMETER_COUNT,SAMPLE_COUNT, theta,Samples,residue_vec);
+        evaluate_jacobian_r(PARAMETER_COUNT,SAMPLE_COUNT,theta,Samples,J);
+        mat_transpose(SAMPLE_COUNT,PARAMETER_COUNT,J,JT);
+        evaluate_gradient_r(PARAMETER_COUNT,SAMPLE_COUNT,gradient_vec,JT,residue_vec);
+        matmatmul_no_alias(PARAMETER_COUNT,SAMPLE_COUNT,JT,J,JTJ);
+        //Now we need to create the matrix JTJ + lambda*I
+        eye(PARAMETER_COUNT,lambdaEye);
+        matscalmult(PARAMETER_COUNT,PARAMETER_COUNT,lambdaEye,lambda,lambdaEye);
+        matmatadd(PARAMETER_COUNT,PARAMETER_COUNT,JTJ,lambdaEye,JTJ_plus_lambda_eye); //JT*J + lambda*I
+        //update theta:
+        vecscalmult(PARAMETER_COUNT,gradient_vec,gradient_vec, -1.0);
+        solve_linear_system_NXN_in_place(PARAMETER_COUNT,JTJ_plus_lambda_eye,d_theta,gradient_vec);
+        vecvecadd(PARAMETER_COUNT,d_theta,theta,theta);
+        iterations++;
+    } while (vecnorm(PARAMETER_COUNT,d_theta) > 1E-6);
+
+    printf("Solution to the system at %d iterations with vecnorm(d_theta) = %.8f is T = \n", iterations, vecnorm(PARAMETER_COUNT,d_theta));
+    printvec(PARAMETER_COUNT, theta);
+}
+
+void set_initial_guess_from_samples(int param_count, int sample_count, Sample* samples, double theta_0[param_count])
+{
+    //Optimally the struct array should be sorted such that all values can be used, but rn we just use the largest and smallest value in each dimension.
+    double max_x = 0, min_x = 0;
+    double max_y = 0, min_y = 0;
+    double max_z = 0, min_z = 0;
+    double a_init, b_init, c_init, px_init, py_init, pz_init;
+
+    for(int i = 0; i < sample_count; i++){
+        if(samples[i].x > max_x){
+            max_x = samples[i].x;
+        }
+        if(samples[i].x < min_x){
+            min_x = samples[i].x;
+        }
+
+        if(samples[i].y > max_y){
+            max_y = samples[i].y;
+        }
+        if(samples[i].y < min_y){
+            min_y = samples[i].y;
+        }
+
+        if(samples[i].z > max_z){
+            max_z = samples[i].z;
+        }
+        if(samples[i].z < min_z){
+            min_z = samples[i].z;
+        }
+    }
+    a_init = (max_x - min_x)/2;
+    b_init = (max_y - min_y)/2;
+    c_init = (max_z - min_z)/2;
+
+    px_init = (max_x + min_x)/2;
+    py_init = (max_y + min_y)/2;
+    pz_init = (max_z + min_z)/2;
+
+    theta_0[0] = 1/(a_init*a_init);
+    theta_0[1] = 1/(b_init*b_init);
+    theta_0[2] = 1/(c_init*c_init);
+
+    theta_0[3] = px_init;
+    theta_0[4] = py_init;
+    theta_0[5] = pz_init;
+    
+    theta_0[6] = 0;
+    theta_0[7] = 0;
+    theta_0[8] = 0;
 }
 
 void evaluate_gradient_r(int param_count, int sample_count, double g[param_count], double JT[param_count][sample_count], double r_vec[sample_count])
@@ -332,15 +358,15 @@ void evaluate_gradient_ri(int param_count, double opt_params[param_count], doubl
 
 }
 
-void evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], double samples[sample_count][3], double J[sample_count][param_count])
+void evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double J[sample_count][param_count])
 {
     //The jacobian of r_vec is a matrix where each row is a transposed gradient of ri
     double grad_ri[9];
     double si[3];
     for(int i = 0; i < sample_count; i++){
-        si[0] = samples[i][0];
-        si[1] = samples[i][1];
-        si[2] = samples[i][2];
+        si[0] = samples[i].x;
+        si[1] = samples[i].y;
+        si[2] = samples[i].z;
         evaluate_gradient_ri(param_count, opt_params, si, grad_ri);
         for(int j = 0; j < param_count; j++){
             J[i][j] = grad_ri[j];
@@ -348,13 +374,13 @@ void evaluate_jacobian_r(int param_count, int sample_count, double opt_params[pa
     }
 }
 
-void evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], double samples[sample_count][3], double r_vec[sample_count])
+void evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double r_vec[sample_count])
 {
     double si[3];
     for(int i = 0; i < sample_count; i++){
-        si[0] = samples[i][0];
-        si[1] = samples[i][1];
-        si[2] = samples[i][2];
+        si[0] = samples[i].x;
+        si[1] = samples[i].y;
+        si[2] = samples[i].z;
         r_vec[i] = evaluate_ri(param_count, opt_params, si);
     }
 }
@@ -383,12 +409,14 @@ void solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double
     //L*y = c solve for y, then solve for x
     int P[N];
     double y[N];
+    double c[N];
+    veccopy(N,b,c); //<-- Not very "in-place" of me tbh
     int rank = PLU_decomposition_NXN_in_place(N,P,A);
     if(rank < N){
         printf("System is rank-deficient!\n");
     }else{
-        permute_vector_with_P(N,P,b);
-        solve_lower_diagonal(N,A,y,b);
+        permute_vector_with_P(N,P,c);
+        solve_lower_diagonal(N,A,y,c);
         solve_upper_diagonal(N,A,x,y);
     }
 }
@@ -514,6 +542,12 @@ double vecnorm(int N, double x[N]){
     }
     return sqrt(norm);
 }
+
+void vecvecadd(int N, double a[N], double b[N], double c[N]){
+    for(int i = 0; i < N; i++){
+        c[i] = a[i] + b[i];
+    }
+};
 
 void vecscalmult(int N, double x[N], double y[N], double k){
     for(int i = 0; i < N; i++){
@@ -772,6 +806,7 @@ void matmatmul_no_alias(int N, int M, double A[N][M], double B[M][N], double C[N
         printf("Error: Aliasing not allowed in matmatmul_no_alias(...)!\n");
         return;
     }
+    zeromat(N,N,C);
     for(int i = 0; i < N; i++){
         for(int j = 0; j < N; j++){
             for(int k = 0; k < M; k++){
@@ -881,7 +916,7 @@ void printmat(int N, int M, const double A[N][M]){
 
 void printvec(int N, double v[N]){
     for(int i = 0; i < N; i++){
-        printf("[%.5f]\n",v[i]);
+        printf("[%.8f]\n",v[i]);
     }
     printf("\n");
 }
