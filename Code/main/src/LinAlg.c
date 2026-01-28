@@ -326,10 +326,241 @@ void LinAlg_printmat(int N, int M, const double A[N][M]){
     printf("\n");
 }
 
-void LinAlg_printvec_comma_separated(double v[3]){
-    for(int i = 0; i < 2; i++){
+void LinAlg_printvec_comma_separated(int N, double v[N]){
+    for(int i = 0; i < N - 1; i++){
         printf("%.8f,",v[i]);
     }
-    printf("%.8f",v[2]);
+    printf("%.8f",v[N - 1]);
     printf("\n");
+}
+
+void LinAlg_printvec_int(int N, int v[N]){
+    for(int i = 0; i < N; i++){
+        printf("[%d]\n",v[i]);
+    }
+    printf("\n");
+}
+
+//New functions required by the solver
+
+int LinAlg_PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N])
+{
+    int P_local[N]; //Stack alloc, consider changing
+    for(int i = 0; i < N; i++){
+        P[i] = i; //Initialize the permutation vectors
+        P_local[i] = i;
+    }
+    
+    for(int diag_kk = 0; diag_kk < N - 1; diag_kk++){
+        for(int i = 0; i < N; i++) P_local[i] = i; //Reset the local permutation vector
+        LinAlg_find_permutation_vector(N, diag_kk, P_local, LUMat);
+        LinAlg_switch_rows_with_P_below_diag(N, diag_kk, P_local, LUMat);
+        LinAlg_kill_column_below_in_place(N, diag_kk, LUMat);
+        LinAlg_update_global_permutation_vector(N, P_local, P);
+    }
+    //Add check the rank of U, do this by checking the fabs() of each pivot
+    int rank = 0;
+    for(int diag_kk = 0; diag_kk < N; diag_kk++){
+        if(fabs(LUMat[diag_kk][diag_kk]) > 1.0E-7){
+            rank++;
+        }
+    }
+    return rank;
+}
+
+void LinAlg_switch_rows_with_P_below_diag(int N, int diag_kk, int P[N], double A[N][N])
+{
+    int M = N;
+
+    for(int i = diag_kk; i < N; i++){ //Only check/switch rows starting from the diagonal index
+        if(P[i] != i){
+            for(int j = 0; j < M; j++){
+                double tmp = A[i][j];
+                A[i][j] = A[P[i]][j];
+                A[P[i]][j] = tmp;
+            }
+            break; //Exit the loop when a row swap has been performed
+        }
+    }
+}
+
+void LinAlg_update_global_permutation_vector(int N, const int P_update[N], int P[N])
+{
+    //This function is only designed to accomododate one row exchange!
+    //I.e P_update can not be equal to [1 0 3 2] as this corresponds to 2 row exchanges
+    int index_mismatch = 0;
+    const int max_switches = 2;
+    for(int i = 0; i < N; i++){
+        if(P_update[i] != i){
+            index_mismatch++;
+        }
+        if(index_mismatch > max_switches){
+            printf("Error: Invalid P_update passed to update_global_permutation_vector; it attempts more than one row exchange, aborting\n");
+            return;
+        }
+    }
+
+    for(int i = 0; i < N; i++){
+        if(P_update[i] != i){ //If P_update[i] = i, no rows should change
+            int tmp = P[i];
+            P[i] = P[P_update[i]];
+            P[P_update[i]] = tmp;
+            break;
+        }
+    }
+}
+
+void LinAlg_add_multiple_of_row_to_row(int N, int M, double A[N][M], int row_start_index, int from_row, int to_row, double k)
+{
+    if(from_row < 0 || from_row >= N || to_row < 0 || to_row >= N){
+        printf("Error: from_rom/to_row outside of matrix dimenions in add_multiple_of_row_to_row, exiting\n");
+        return;
+    }
+
+    for(int i = row_start_index; i < M; i++){
+        A[to_row][i] += A[from_row][i]*k;
+    }
+}
+
+void LinAlg_permute_vector_with_P(int N, int P[N], double b[N])
+{
+    //There are two ways to interpret the effect of P on b:
+    //1: P[i] tells where element b[i] goes in the updated b. Ie: b[P[i]] = b[i]
+    //2: P[i] tells which element of b goes to b[i].          Ie: b[i] = b[P[i]]
+
+    //Example 1: b = [b0 b1 b2], P = [1 2 0] --> b_updated = [b2 b0 b1]
+    //Example 2: b = [b0 b1 b2], P = [1 2 0] --> b_updated = [b1 b2 b0] <-- This is what we use
+
+    //This part follows a chain of updates in the array and sets visited elements to -1 in P
+    for(int j = 0; j < N; j++){
+        if(P[j] != - 1 && P[j] != j){
+            int i = j;
+            int start_index = - 1;
+            int permutation_index_set_to_negative = -1;
+            int first_iteration = 1;
+            double tmp;
+            while(1){
+                if(first_iteration){
+                    first_iteration = 0;
+                    start_index = i;
+                    tmp = b[i];
+                    b[i] = b[P[i]];
+                }else{
+                    permutation_index_set_to_negative = i;
+                    i = P[i];
+                    P[permutation_index_set_to_negative] = - 1;
+                    if(P[i] != start_index){
+                        b[i] = b[P[i]];
+                    }else{
+                        b[i] = tmp;
+                        P[i] = - 1;
+                        break;//End of the permutation chain
+                    }
+                }
+            }
+        }else{
+            P[j] = - 1; //This is the case when P[j] = j or when P[j] = - 1. We mark it as visited
+        }
+    }
+}
+
+void LinAlg_kill_column_below_in_place(int N, int diag_kk, double LUMat[N][N])
+{
+    for(int k = diag_kk + 1; k < N; k++){
+        double LUMat_kk = LUMat[diag_kk][diag_kk];
+        if(LUMat_kk != 0){ //<----- This should be slightly larger than 0; eps
+            double factor = - LUMat[k][diag_kk]/LUMat_kk;
+            LinAlg_add_multiple_of_row_to_row(N,N,LUMat,diag_kk,diag_kk,k,factor);
+            //We need to add the negative of factor to L in order to keep the expression unchanged
+            //Remember that for in-place, we store both L and U in the same matrix
+            LUMat[k][diag_kk] = - factor;
+        }
+    }
+}
+
+void LinAlg_find_permutation_vector(int N, int diag_kk, int P[N], double LUMat[N][N])
+{
+    if(diag_kk > (N - 2)){
+        printf("Error: Invalid index for finding largest pivot! Returning\n");
+        return;
+    }
+
+    //P works in such a way that P = [0 1 2] corresponds to no row changes
+    //P = [1 0 2] corresponds to row 1 being in 0th position and row 0 in 1st position
+
+    //Find the largest element below and including diagonal element diag_kk
+    double largest = 0.0;
+    int largest_element_index = 0;
+    for(int below_diag_kk = diag_kk; below_diag_kk < N; below_diag_kk++){
+        double element = fabs(LUMat[below_diag_kk][diag_kk]);
+        if(element > largest){
+            largest = element;
+            largest_element_index = below_diag_kk;
+        }
+    }
+
+    if(largest_element_index > 0){//Update P. If largest element == 0, the diagonal element is the largest and no update will be done
+        int tmp = P[diag_kk];
+        P[diag_kk] = largest_element_index;
+        P[largest_element_index] = tmp;
+    }
+}
+
+void LinAlg_matmatmul_no_alias(int N, int M, double A[N][M], double B[M][N], double C[N][N]){
+    //A e NxM
+    //B e MxN
+    //C e NxN
+
+    if(A == B || A == C || B == C){
+        printf("Error: Aliasing not allowed in matmatmul_no_alias(...)!\n");
+        return;
+    }
+    LinAlg_zeromat(N,N,C);
+    for(int i = 0; i < N; i++){
+        for(int j = 0; j < N; j++){
+            for(int k = 0; k < M; k++){
+                C[i][j] += A[i][k]*B[k][j]; //Some inefficiency with indexing I need to consider here
+            }
+        }
+    }
+}
+
+void LinAlg_solve_lower_diagonal(int N, double L[N][N], double x[N], double b[N])
+{
+    //Solves for x in L*x=b
+    for(int i = 0; i < N; i++){
+        x[i] = b[i];
+        for(int j = 0; j < i; j++){
+            x[i] = x[i] - L[i][j]*x[j]; //We do not divide by L[i][i] as this is implicitly 1
+        }
+    }
+}
+
+void LinAlg_solve_upper_diagonal(int N, double U[N][N], double x[N], double b[N])
+{
+    //Solves for x in U*x=b
+    for(int i = N - 1; i >= 0; i--){
+        x[i] = b[i]/U[i][i];
+        for(int j = i + 1; j <= N - 1; j++){
+            x[i] = x[i] - U[i][j]*x[j]/U[i][i];
+        }
+    }
+}
+
+void LinAlg_solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double b[N])
+{
+    //P*L*U*x = b
+    //L*U*x = transpose(P)*b = c
+    //U*x = y
+    //L*y = c solve for y, then solve for x
+    int P[N];
+    double y[N];
+    int rank = LinAlg_PLU_decomposition_NXN_in_place(N,P,A);
+    if(rank < N){
+        printf("System is rank-deficient!\n");
+    }else{
+        LinAlg_permute_vector_with_P(N,P,b);
+        LinAlg_solve_lower_diagonal(N,A,y,b);
+        LinAlg_solve_upper_diagonal(N,A,x,y);
+    }
 }

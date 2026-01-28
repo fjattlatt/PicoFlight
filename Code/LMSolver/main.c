@@ -30,36 +30,36 @@ void LinAlg_vecscalmult(int N, double x[N], double y[N], double k);             
 //-----------------------------End-------------------------------
 
 //--------------New functions that belong in LinAlg--------------
-void LinAlg_printvec_int(int N, int v[N]);
-int LinAlg_PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N]);
-void LinAlg_switch_rows_with_P_below_diag(int N, int diag_kk, int P[N], double A[N][N]);
-void LinAlg_update_global_permutation_vector(int N, const int P_update[N], int P[N]);
-void LinAlg_add_multiple_of_row_to_row(int N, int M, double A[N][M], int row_start_index, int from_row, int to_row, double k);
-void LinAlg_permute_vector_with_P(int N, int P[N], double b[N]);
-void LinAlg_kill_column_below_in_place(int N, int diag_kk, double LUMat[N][N]);
-void LinAlg_find_permutation_vector(int N, int diag_kk, int P[N], double LUMat[N][N]);
-void LinAlg_matmatmul_no_alias(int N, int M, double A[N][M], double B[M][N], double C[N][N]); //Used for larger matrices most likely defined globally
-void LinAlg_solve_lower_diagonal(int N, double L[N][N], double x[N], double b[N]);
-void LinAlg_solve_upper_diagonal(int N, double U[N][N], double x[N], double b[N]);
-void LinAlg_solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double b[N]); //This solver modifies b!!
+void LinAlg_printvec_int(int N, int v[N]);                                                  //Done
+int LinAlg_PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N]);             //Done
+void LinAlg_switch_rows_with_P_below_diag(int N, int diag_kk, int P[N], double A[N][N]);    //Done
+void LinAlg_update_global_permutation_vector(int N, const int P_update[N], int P[N]);       //Done
+void LinAlg_add_multiple_of_row_to_row(int N, int M, double A[N][M], int row_start_index, int from_row, int to_row, double k); //Done
+void LinAlg_permute_vector_with_P(int N, int P[N], double b[N]);                            //Done
+void LinAlg_kill_column_below_in_place(int N, int diag_kk, double LUMat[N][N]);             //Done
+void LinAlg_find_permutation_vector(int N, int diag_kk, int P[N], double LUMat[N][N]);      //Done
+void LinAlg_matmatmul_no_alias(int N, int M, double A[N][M], double B[M][N], double C[N][N]); //Done, used for larger matrices most likely defined globally
+void LinAlg_solve_lower_diagonal(int N, double L[N][N], double x[N], double b[N]);          //Done
+void LinAlg_solve_upper_diagonal(int N, double U[N][N], double x[N], double b[N]);          //Done
+void LinAlg_solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double b[N]); //Done, this solver modifies b!!
 //-----------------------------End-------------------------------
 
 
 
 //--------Make a new source file for the optimizer?--------------
-double Namespace_evaluate_ri(int param_count, double opt_params[param_count], double si[3]);
-void Namespace_evaluate_gradient_ri(int param_count, double opt_params[param_count], double si[3], double grad_ri[param_count]);
+double Namespace_evaluate_ri(int param_count, double opt_params[param_count], double si[3]);                                        //Done
+void Namespace_evaluate_gradient_ri(int param_count, double opt_params[param_count], double si[3], double grad_ri[param_count]);    //Done
 //According to my current unerstanding of my own implementation, the two functions above are the only functions strictly specific to the magnetometer cost function
 //To generalize, they could be passed as function pointers to the optimizer below, this means ri and gradient_ri can be defined and declared in the sensor-specific file,
 //while the rest of the optimizer can be in its own optimizer namespace.
 
-void Namespace_evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double r_vec[sample_count]);
-void Namespace_evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double J[sample_count][param_count]);
-void Namespace_evaluate_gradient_r(int param_count, int sample_count, double g[param_count], double JT[param_count][sample_count], double r_vec[sample_count]); //gradient g = J^T*r
-void Namespace_set_initial_guess_from_samples(int param_count, int sample_count, Sample* samples, double theta_0[param_count]); //Computes rough guess of the optimum solution
-void Namespace_LM_solver();
-void Namespace_get_magnetometer_calib(double theta[9], double correction_matrix[3][3], double correction_vector[3]);
-void Namespace_get_corrected_mag_vector(double correction_matrix[3][3], double correction_vector[3], Sample si, double m_corr[3]);
+void Namespace_evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double r_vec[sample_count]); //Done
+void Namespace_evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double J[sample_count][param_count]); //Done
+void Namespace_evaluate_gradient_r(int param_count, int sample_count, double g[param_count], double JT[param_count][sample_count], double r_vec[sample_count]); //Done, gradient g = J^T*r
+void Namespace_set_initial_guess_from_samples(int param_count, int sample_count, Sample* samples, double theta_0[param_count]); //Done, computes rough guess of the optimum solution
+void Namespace_LM_solver(); //Done
+void Namespace_get_magnetometer_calib(double theta[9], double correction_matrix[3][3], double correction_vector[3]); //Done
+void Namespace_get_corrected_mag_vector(double correction_matrix[3][3], double correction_vector[3], Sample si, double m_corr[3]); //Done
 
 //Large variables for LM-solver
 #define SAMPLE_COUNT 1000
@@ -345,7 +345,6 @@ void Namespace_evaluate_gradient_ri(int param_count, double opt_params[param_cou
     grad_ri[6] = 2*ui*vi; 
     grad_ri[7] = 2*ui*wi;
     grad_ri[8] = 2*vi*wi;
-
 }
 
 void Namespace_evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double J[sample_count][param_count])

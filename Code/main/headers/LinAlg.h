@@ -64,6 +64,32 @@ void LinAlg_printvec(int N, double v[N]);
 
 void LinAlg_printmat(int N, int M, const double A[N][M]);
 
-void LinAlg_printvec_comma_separated(double v[3]);
+void LinAlg_printvec_comma_separated(int N, double v[N]);
+
+void LinAlg_printvec_int(int N, int v[N]);
+
+//New functions required by the solver
+
+int LinAlg_PLU_decomposition_NXN_in_place(int N, int P[N], double LUMat[N][N]);
+
+void LinAlg_switch_rows_with_P_below_diag(int N, int diag_kk, int P[N], double A[N][N]);
+
+void LinAlg_update_global_permutation_vector(int N, const int P_update[N], int P[N]);
+
+void LinAlg_add_multiple_of_row_to_row(int N, int M, double A[N][M], int row_start_index, int from_row, int to_row, double k);
+
+void LinAlg_permute_vector_with_P(int N, int P[N], double b[N]);
+
+void LinAlg_kill_column_below_in_place(int N, int diag_kk, double LUMat[N][N]);
+
+void LinAlg_find_permutation_vector(int N, int diag_kk, int P[N], double LUMat[N][N]);
+
+void LinAlg_matmatmul_no_alias(int N, int M, double A[N][M], double B[M][N], double C[N][N]); //Used for larger matrices most likely defined globally
+
+void LinAlg_solve_lower_diagonal(int N, double L[N][N], double x[N], double b[N]);
+
+void LinAlg_solve_upper_diagonal(int N, double U[N][N], double x[N], double b[N]);
+
+void LinAlg_solve_linear_system_NXN_in_place(int N, double A[N][N], double x[N], double b[N]); //This solver modifies b!!
 
 #endif

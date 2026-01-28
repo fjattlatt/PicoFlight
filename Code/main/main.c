@@ -35,15 +35,15 @@ int main()
         uint64_t start = time_us_64();
         Main_run(&controllerData, &receiverData, &estimatorData, h);
         
-        // Estimator_R_to_euler(estimatorData.R_hat, eul);
-        // LinAlg_vecscalmult(N,eul, eul, 180.f/PI);
-        // LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/PI);
-        // LinAlg_vecscalmult(N,estimatorData.w, wRaw, 180.f/PI);
-        // LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/3.14159f);
-        // LinAlg_colvecs2mat3x3(mat,eul,bias,empty);
-        // LinAlg_printmat(N,N,mat);
+        Estimator_R_to_euler(estimatorData.R_hat, eul);
+        LinAlg_vecscalmult(N,eul, eul, 180.f/PI);
+        LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/PI);
+        LinAlg_vecscalmult(N,estimatorData.w, wRaw, 180.f/PI);
+        LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/3.14159f);
+        LinAlg_colvecs2mat3x3(mat,eul,bias,empty);
+        LinAlg_printmat(N,N,mat);
         
-        // sleep_ms(10);
+        sleep_ms(10);
         h = (time_us_64() - start)/1e6;
     }
 }
