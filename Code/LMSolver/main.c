@@ -77,9 +77,12 @@ Sample Samples[SAMPLE_COUNT];//24kB
 
 
 int load_samples_from_file(const char* filepath, Sample* samples, int sample_count);
+int save_samples_as_c_array(const char* filename, Sample* samples, int sample_count, const char* array_name);
 int main()
 {
-    Namespace_LM_solver();
+    //Namespace_LM_solver();
+    load_samples_from_file("../MagnetometerRawData/mag_cal.txt",Samples, sizeof(Samples)/sizeof(Sample));
+    save_samples_as_c_array("../MagnetometerRawData/mag_cal_array.txt", Samples,SAMPLE_COUNT, "magnetometer_samples");
     printf("END OF PROGRAM\n");
     return 0;
 }
@@ -100,6 +103,26 @@ int load_samples_from_file(const char* filepath, Sample* samples, int sample_cou
             return 2;
         }
     }
+    fclose(fptr);
+    return 0;
+}
+
+int save_samples_as_c_array(const char* filename, Sample* samples, int sample_count, const char* array_name)
+{
+    FILE* fptr = fopen(filename, "w");
+    if (!fptr) {
+        printf("Failed to open output file!\n");
+        return 1;
+    }
+
+    fprintf(fptr, "static const Sample %s[%d] = {\n", array_name, sample_count);
+    for (int i = 0; i < sample_count; i++) {
+        fprintf(fptr, "    {%.8f, %.8f, %.8f}%s\n",
+                samples[i].x, samples[i].y, samples[i].z,
+                (i < sample_count - 1) ? "," : "");
+    }
+    fprintf(fptr, "};\n");
+
     fclose(fptr);
     return 0;
 }

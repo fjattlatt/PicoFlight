@@ -1,8 +1,8 @@
 #include "headers/Optimization.h"
+#include "headers/ValidationData.h"
 
 //Large variables for LM-solver
-#define SAMPLE_COUNT 1000
-#define PARAMETER_COUNT 9
+//Total RAM required from this is approx 200kB, well within RP2350 RAM of 512kB, but optimizations can be done
 double theta[PARAMETER_COUNT];
 double d_theta[PARAMETER_COUNT]; //72B, parameter increment
 double J[SAMPLE_COUNT][PARAMETER_COUNT]; //72kB
@@ -10,8 +10,7 @@ double JT[PARAMETER_COUNT][SAMPLE_COUNT]; //72kB
 double JTJ[PARAMETER_COUNT][PARAMETER_COUNT]; //648B
 double residue_vec[SAMPLE_COUNT]; //8kB
 double gradient_vec[PARAMETER_COUNT];
-Sample Samples[SAMPLE_COUNT];//24kB
-//Total RAM required from this is approx 200kB, well within RP2350 RAM of 512kB, but optimizations can be done
+//Sample Samples[SAMPLE_COUNT];//24kB
 
 double Namespace_evaluate_ri(int param_count, double opt_params[param_count], double si[3])
 {
@@ -54,7 +53,7 @@ void Namespace_evaluate_gradient_ri(int param_count, double opt_params[param_cou
     grad_ri[8] = 2*vi*wi;
 }
 
-void Namespace_evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double r_vec[sample_count])
+void Namespace_evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], const Sample* samples, double r_vec[sample_count])
 {
     double si[3];
     for(int i = 0; i < sample_count; i++){
@@ -65,7 +64,7 @@ void Namespace_evaluate_r_vec(int param_count, int sample_count, double opt_para
     }
 }
 
-void Namespace_evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], Sample* samples, double J[sample_count][param_count])
+void Namespace_evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], const Sample* samples, double J[sample_count][param_count])
 {
     //The jacobian of r_vec is a matrix where each row is a transposed gradient of ri
     double grad_ri[9];
@@ -92,7 +91,7 @@ void Namespace_evaluate_gradient_r(int param_count, int sample_count, double g[p
     }
 }
 
-void Namespace_set_initial_guess_from_samples(int param_count, int sample_count, Sample* samples, double theta_0[param_count])
+void Namespace_set_initial_guess_from_samples(int param_count, int sample_count, const Sample* samples, double theta_0[param_count])
 {
     //Optimally the struct array should be sorted such that all values can be used, but rn we just use the largest and smallest value in each dimension.
     double max_x = 0, min_x = 0;
@@ -145,8 +144,8 @@ void Namespace_set_initial_guess_from_samples(int param_count, int sample_count,
 
 void Namespace_LM_solver()
 {
-    //load_samples_from_file("../MagnetometerRawData/mag_cal.txt",Samples, sizeof(Samples)/sizeof(Sample));
-    //Namespace_set_initial_guess_from_samples(PARAMETER_COUNT, SAMPLE_COUNT,Samples,theta);
+    printf("ENTERED LM_solver\n");
+    Namespace_set_initial_guess_from_samples(PARAMETER_COUNT, SAMPLE_COUNT,magnetometer_samples,theta);
     double lambda = 1E-4; //This worked in matlab
     double lambdaEye[PARAMETER_COUNT][PARAMETER_COUNT];
     double JTJ_plus_lambda_eye[PARAMETER_COUNT][PARAMETER_COUNT];
@@ -154,8 +153,8 @@ void Namespace_LM_solver()
     int max_iter = 1000;
 
     do{
-        Namespace_evaluate_r_vec(PARAMETER_COUNT,SAMPLE_COUNT, theta,Samples,residue_vec);
-        Namespace_evaluate_jacobian_r(PARAMETER_COUNT,SAMPLE_COUNT,theta,Samples,J);
+        Namespace_evaluate_r_vec(PARAMETER_COUNT,SAMPLE_COUNT, theta,magnetometer_samples,residue_vec);
+        Namespace_evaluate_jacobian_r(PARAMETER_COUNT,SAMPLE_COUNT,theta,magnetometer_samples,J);
         LinAlg_mattranspose(SAMPLE_COUNT,PARAMETER_COUNT,J,JT);
         Namespace_evaluate_gradient_r(PARAMETER_COUNT,SAMPLE_COUNT,gradient_vec,JT,residue_vec);
         LinAlg_matmatmul_no_alias(PARAMETER_COUNT,SAMPLE_COUNT,JT,J,JTJ);
