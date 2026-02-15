@@ -11,6 +11,8 @@
 //1: Single-Shot mode: You tell the sensor over i2c to take store a measurement, then a bit will be set to 1 in status 1 when the reading is done.
 //2: Continuous mode: As the name implies, you don't need to tell the sensor to take a measurement, it will always store the newest. 
 
+//The breakoutboard from Adafruit has the magnetometer axes printed on the board, however, they are wrong. Consult the datasheet for the MMC5603 instead
+
 //Register map
 #define MMC5603_I2C_ADDRESS 0x30
 

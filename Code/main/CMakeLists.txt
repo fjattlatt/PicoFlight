@@ -39,6 +39,7 @@ add_executable(main main.c
         src/MPU6050.c
         src/MMC5603.c
         src/ICM42688P.c
+        src/ICM20948.c
         src/LinAlg.c
         src/Estimator.c
         src/Receiver.c
@@ -58,7 +59,8 @@ pico_enable_stdio_usb(main 1)
 target_link_libraries(main
         pico_stdlib
         hardware_pwm
-        hardware_i2c)
+        hardware_i2c
+        hardware_spi)
 
 # Add the standard include files to the build
 target_include_directories(main PRIVATE

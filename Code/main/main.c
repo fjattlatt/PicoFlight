@@ -6,6 +6,7 @@
 //Custom includes
 #include "headers/MPU6050.h"
 #include "headers/MMC5603.h"
+#include "headers/ICM20948.h"
 #include "headers/LinAlg.h"
 #include "headers/Estimator.h"
 #include "headers/Receiver.h"
@@ -22,6 +23,7 @@ int main()
 {
     stdio_init_all();
     sleep_ms(7000);
+    ICM20948_init(); //THIS MAY BE BLOCKING DUE TO while(1)
 
     MMC5603_init();
     Main_init(&controllerData, &receiverData, &estimatorData);

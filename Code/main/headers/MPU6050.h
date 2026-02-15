@@ -9,6 +9,12 @@
 #include "pico/binary_info.h"
 #include "headers/LinAlg.h"
 
+//I2C pins
+//These pins are used such that the ICM20498 can use pins 2 3 4 5, but this will not work on the drone 
+//as the pins are hardwired in the pcb! Use the default values for the drone of SDA = 4 and SCL = 5
+#define MPU6050_I2C_SDA 8
+#define MPU6050_I2C_SCL 9
+
 //Registers
 #define MPU6050_I2C_ADDRESS 0x68
 

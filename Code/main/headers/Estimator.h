@@ -5,6 +5,7 @@
 #include "headers/LinAlg.h"
 #include "headers/MPU6050.h"
 #include "headers/MMC5603.h"
+#include "headers/ICM20948.h"
 #include "headers/Config.h"
 #include "pico/stdlib.h"
 
@@ -77,5 +78,7 @@ void Estimator_estimate_R(estStruct* estData, double h);
 void Estimator_find_current_mag_direction(estStruct* estData); //Find the local direction of the magnetic field
 
 void Estimator_set_initial_gyro_bias(estStruct* estData);
+
+void Estimator_get_imu_data(estStruct* estData);
 
 #endif

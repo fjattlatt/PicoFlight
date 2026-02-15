@@ -104,8 +104,7 @@ void Estimator_init(estStruct* estData){
 };
 
 void Estimator_estimate_R(estStruct* estData,double h){
-    MPU6050_get_imu_data(estData->a, estData->w);
-    MPU6050_six_point_accel_correction(estData->a);
+    Estimator_get_imu_data(estData);
     MMC5603_get_corrected_mag_reading(estData->m);
 
     //Define the reference vectors v1 and v2, and ensure no division by 0
@@ -155,7 +154,7 @@ void Estimator_estimate_R(estStruct* estData,double h){
     LinAlg_matvecmul(estData->N,estData->N,estData->Kpe, estData->c, estData->Kpe_c);
     LinAlg_vec2skew3x3(estData->Kpe_c, estData->Kpe_c_X); //Kpe_c_X = S(Kpe*c)
     LinAlg_vecvecsub(estData->N,estData->w, estData->b_hat, estData->w_hat); //w_hat = w - b_hat
-    // LinAlg_zerovec(estData->N, estData->w_hat); //<------------------------------- THIS IS SET TO ZERO TO GAUGE EFFECT OF REFERENCE VECTORS IN ISOLATION
+    //LinAlg_zerovec(estData->N, estData->w_hat); //<------------------------------- THIS IS SET TO ZERO TO GAUGE EFFECT OF REFERENCE VECTORS IN ISOLATION
     LinAlg_vec2skew3x3(estData->w_hat, estData->w_hat_X); //w_hat_X = S(w_hat)
     LinAlg_matmatadd(estData->N,estData->N,estData->w_hat_X, estData->Kpe_c_X, estData->S); //S = S(w_hat) + S(Kpe*c)
     LinAlg_matscalmult(estData->N,estData->N,estData->S,h,estData->Sh); // Sh = S*h
@@ -179,7 +178,7 @@ void Estimator_find_current_mag_direction(estStruct* estData){
     while(!is_stationary){
         start = time_us_32();
         sleep_ms(20);
-        MPU6050_get_imu_data(estData->a, estData->w);
+        Estimator_get_imu_data(estData);
         if(fabs(LinAlg_vecnorm(estData->N, estData->w)) > w_threshold){
             duration = 0;
             PRINT("MOVING\n");
@@ -216,7 +215,7 @@ void Estimator_set_initial_gyro_bias(estStruct* estData)
     int samples = 100;
     LinAlg_zerovec(3, sum);
     for(int i = 0; i < samples; i++){
-        MPU6050_get_imu_data(estData->a, estData->w);
+        Estimator_get_imu_data(estData);
         for(int j = 0; j < 3; j++){
             sum[j] += estData->w[j];
         }
@@ -227,4 +226,11 @@ void Estimator_set_initial_gyro_bias(estStruct* estData)
         estData->b_hat[j] = sum[j]/samples;
     }
     PRINT("Done\n");
+}
+
+void Estimator_get_imu_data(estStruct* estData)
+{
+    MPU6050_get_imu_data(estData->a, estData->w);
+    MPU6050_six_point_accel_correction(estData->a);
+    //ICM20948_get_imu_data(estData->a, estData->w);
 }
