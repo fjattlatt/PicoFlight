@@ -23,9 +23,6 @@ int main()
 {
     stdio_init_all();
     sleep_ms(7000);
-    ICM20948_init(); //THIS MAY BE BLOCKING DUE TO while(1)
-
-    MMC5603_init();
     Main_init(&controllerData, &receiverData, &estimatorData);
     
     int N = 3;
@@ -54,6 +51,7 @@ int main()
         LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/3.14159f);
         LinAlg_colvecs2mat3x3(mat,eul,bias,wRaw);
         LinAlg_printmat(N,N,mat);
+
         
         sleep_ms(10);
         h = (time_us_64() - start)/1e6;
@@ -62,6 +60,8 @@ int main()
 
 void Main_init(contStruct* contData, recStruct* recData, estStruct* estData)
 {
+    ICM20948_init();
+    MMC5603_init();
     MPU6050_init();
     Servo_init();
     Receiver_init(recData);

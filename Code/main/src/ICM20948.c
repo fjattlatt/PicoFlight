@@ -1,5 +1,9 @@
 #include "headers/ICM20948.h"
 
+//Default sensitivity values
+double gyro_sensitivity = 131.0;
+double accel_sensitivity = 16384.0;
+
 void ICM20948_init()
 {
     //On the breakout board (slave) from Adafruit, the SPI pins are as follows
@@ -10,7 +14,7 @@ void ICM20948_init()
 
 
     //Setup spi at 1 MHz
-    int ret = spi_init(spi0, 1000*1000); //Max seems to be 37.5 Mhz
+    spi_init(spi0, 1000*1000); //Max seems to be 37.5 Mhz
     gpio_set_function(ICM20948_MISO, GPIO_FUNC_SPI);  //RX on master is MISO
     gpio_set_function(ICM20948_SCK, GPIO_FUNC_SPI);
     gpio_set_function(ICM20948_MOSI, GPIO_FUNC_SPI);  //TX on master is MOSI
@@ -27,21 +31,73 @@ void ICM20948_init()
     //SPI format: 8 bits
     spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST); //CPOL: Clock Polarity, CPOL = 0 means active high. CPHA: Clock Phase, this indicates where the data is sampled. CPHA = 0 means the data is sampled/latched on the rising edge
 
-    //Read the a register
-    uint8_t tx_buf[2];
-    uint8_t rx_buf[2];
+    //Turn off sleep mode
+    ICM20948_read_modify_write_register(ICM20948_PWR_MGMT_1, 0, 1 << ICM20948_SLEEP,ICM20948_CS);
 
-    //Need to turn off the sleep mode in power management 1. To do this, first read it, OR it after NOT, then write the new value
-    ICM20948_read_from_register(ICM20948_PWR_MGMT_1, tx_buf, rx_buf,2,ICM20948_CS);
 
-    tx_buf[1] = (rx_buf[1] & ~ (1 << ICM20948_SLEEP)); //This modifies only the bit we want to change, leaving the rest intact;
+    //Next, set gyro and acc full scale ranges. These registers are in user bank 2:
+    ICM20948_set_register_user_bank(2);
+    ICM20948_set_measurement_ranges(ICM20948_GYRO_FS_500, ICM20948_ACCEL_FS_4G);
+    ICM20948_set_register_user_bank(0); //Always set back to zero, otherwise can't read sensor registers later
+}
 
-    ICM20948_write_to_register(ICM20948_PWR_MGMT_1,tx_buf,rx_buf,2,ICM20948_CS);
+void ICM20948_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs)
+{
+    switch (gyro_fs)
+    {
+    case ICM20948_GYRO_FS_250:
+        gyro_sensitivity = 131.0;
+        break;
 
-    //Now read it back to see if the write worked as intended
-    ICM20948_read_from_register(ICM20948_PWR_MGMT_1, tx_buf, rx_buf,2,ICM20948_CS);
+    case ICM20948_GYRO_FS_500:
+        gyro_sensitivity = 65.5;
+        break;
 
-    PRINTNUM("updated pwr mgmn 1 value = %d\n", rx_buf[1]);
+    case ICM20948_GYRO_FS_1000:
+        gyro_sensitivity = 32.8;
+        break;
+
+    case ICM20948_GYRO_FS_2000:
+        gyro_sensitivity = 16.4;
+        break;
+    
+    default:
+        break;
+    }
+
+    switch (accel_fs)
+    {
+    case ICM20948_ACCEL_FS_2G:
+        accel_sensitivity = 16384.0; 
+        break;
+    
+    case ICM20948_ACCEL_FS_4G:
+        accel_sensitivity = 8192.0; 
+        break;
+
+    case ICM20948_ACCEL_FS_8G:
+        accel_sensitivity = 4096.0; 
+        break;
+
+    case ICM20948_ACCEL_FS_16G:
+        accel_sensitivity = 2048.0; 
+        break;
+
+    default:
+        break;
+    }
+    ICM20948_read_modify_write_register(ICM20948_GYRO_CONFIG_1, gyro_fs << ICM20948_GYRO_FS_SEL, ICM20948_GYRO_FS_BITMASK,ICM20948_CS);
+    ICM20948_read_modify_write_register(ICM20948_ACCEL_CONFIG_1, accel_fs << ICM20948_ACCEL_FS_SEL, ICM20948_ACCEL_FS_BITMASK,ICM20948_CS);
+}
+
+void ICM20948_set_register_user_bank(uint8_t bank)
+{
+    //Register bank 127, 0x7F, in any bank is the bank selection register
+    if(bank <= 3){
+        ICM20948_read_modify_write_register(ICM20948_REG_BANK_SEL, bank << 4,0b11 << 4,ICM20948_CS);
+    }else{
+        LOG("Invalid USER BANK selected!\n");
+    }
 }
 
 void ICM20948_get_imu_data(double acc[3], double gyr[3])
@@ -67,9 +123,9 @@ void ICM20948_get_imu_data(double acc[3], double gyr[3])
 
     //Note that the frame printed on the Adafruit ICM20498 is wrong!
     //COnvert to NED frame
-    acc[0] =   ACC_x/16384.0;
-    acc[1] = - ACC_y/16384.0;
-    acc[2] = - ACC_z/16384.0;
+    acc[0] =   ACC_x/accel_sensitivity;
+    acc[1] = - ACC_y/accel_sensitivity;
+    acc[2] = - ACC_z/accel_sensitivity;
 
     MSB_x = rx_buf[7];
     LSB_x = rx_buf[8];
@@ -86,9 +142,23 @@ void ICM20948_get_imu_data(double acc[3], double gyr[3])
     //Assuming default is +-250dps, divide by 131
     //Note that the frame printed on the Adafruit ICM20498 is wrong!
     //Convert to NED frame
-    gyr[0] =   GYR_x/131.0*d2r;
-    gyr[1] = - GYR_y/131.0*d2r;
-    gyr[2] = - GYR_z/131.0*d2r;
+    gyr[0] =   GYR_x/gyro_sensitivity*d2r;
+    gyr[1] = - GYR_y/gyro_sensitivity*d2r;
+    gyr[2] = - GYR_z/gyro_sensitivity*d2r;
+}
+
+void ICM20948_read_modify_write_register(uint8_t dev_register, uint8_t bits_to_update, uint8_t mask, uint8_t cs_pin)
+{
+    //The mask signifies which bits to update. mask = 0b00000001 means leave all bits as-is except maybe bit 0
+    uint8_t tx_buf[2];
+    uint8_t rx_buf[2];
+
+    ICM20948_read_from_register(dev_register,tx_buf,rx_buf,sizeof(tx_buf),cs_pin);
+    uint8_t value_from_register = rx_buf[1];
+    value_from_register &= ~(mask); //This sets all bits we want to control to 0
+    uint8_t value_to_register = value_from_register | (bits_to_update & mask);
+    tx_buf[1] = value_to_register;
+    ICM20948_write_to_register(dev_register,tx_buf,rx_buf,sizeof(tx_buf), cs_pin);
 }
 
 void ICM20948_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin)
