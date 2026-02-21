@@ -6,16 +6,8 @@
 
 #include "headers/Logging.h"
 #include "headers/LinAlg.h"
-#include "hardware/spi.h"
 #include "pico/binary_info.h"
-//10 11 12 13 used by receiver.
-//18 19 20 21 used by servo
-//8 9 used by i2c0
-//2 3 4 5 are free to use for spi0
-#define ICM20948_MOSI 3
-#define ICM20948_MISO 4
-#define ICM20948_SCK 2
-#define ICM20948_CS 5
+#include "headers/Bus.h"
 
 void ICM20948_init();
 

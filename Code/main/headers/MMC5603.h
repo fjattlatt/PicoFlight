@@ -2,7 +2,7 @@
 #define MMC5603_H
 
 #include "headers/Logging.h"
-#include "hardware/i2c.h"
+#include "headers/Bus.h"
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
 #include "headers/LinAlg.h"
@@ -68,8 +68,6 @@
 void MMC5603_init();
 
 void MMC5603_setup();
-
-void MMC5603_i2c_setup();
 
 void MMC5603_read_temp();
 

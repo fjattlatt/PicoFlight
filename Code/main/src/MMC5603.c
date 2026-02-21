@@ -6,7 +6,6 @@ static double solution[9];
 
 void MMC5603_init()
 {
-    MMC5603_i2c_setup();
     MMC5603_setup();
     MMC5603_calibrate_magnetometer();
 }
@@ -34,19 +33,6 @@ void MMC5603_setup()
 
 }
 
-void MMC5603_i2c_setup()
-{
-    // This example will use I2C1 on SDA and SCL pins (GP26, GP27 on a Pico)
-    int ret = i2c_init(i2c1, 400 * 1000); //Fast mode plus at 1MHz is the fastest supported mode on the RP2350
-    uint8_t GPIO_26_SDA = 26;
-    uint8_t GPIO_27_SCL = 27;
-    gpio_set_function(GPIO_26_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(GPIO_27_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(GPIO_26_SDA);
-    gpio_pull_up(GPIO_27_SCL);
-    // Make the I2C pins available to picotool
-    bi_decl(bi_2pins_with_func(26, 27, GPIO_FUNC_I2C));
-}
 
 void MMC5603_calibrate_magnetometer()
 {

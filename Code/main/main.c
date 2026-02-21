@@ -4,6 +4,7 @@
 #include "pico/stdlib.h"
 
 //Custom includes
+#include "headers/Bus.h"
 #include "headers/MPU6050.h"
 #include "headers/MMC5603.h"
 #include "headers/ICM20948.h"
@@ -60,6 +61,8 @@ int main()
 
 void Main_init(contStruct* contData, recStruct* recData, estStruct* estData)
 {
+    Bus_spi_init();
+    Bus_i2c_init();
     ICM20948_init();
     MMC5603_init();
     MPU6050_init();
@@ -74,3 +77,5 @@ void Main_run(contStruct* contData, recStruct* recData, estStruct* estData, doub
     Estimator_estimate_R(estData, h);
     Controller_run_quadcopter(contData, recData, estData, h);
 }
+
+

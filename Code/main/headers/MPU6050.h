@@ -5,15 +5,9 @@
 #include "headers/Config.h"
 #include "pico/stdlib.h"
 #include "headers/Logging.h"
-#include "hardware/i2c.h"
+#include "headers/Bus.h"
 #include "pico/binary_info.h"
 #include "headers/LinAlg.h"
-
-//I2C pins
-//These pins are used such that the ICM20498 can use pins 2 3 4 5, but this will not work on the drone 
-//as the pins are hardwired in the pcb! Use the default values for the drone of SDA = 4 and SCL = 5
-#define MPU6050_I2C_SDA 8
-#define MPU6050_I2C_SCL 9
 
 //Registers
 #define MPU6050_I2C_ADDRESS 0x68
@@ -41,8 +35,6 @@ void MPU6050_setup();
 void MPU6050_get_imu_data(double acc[3], double gyr[3]);
 
 void MPU6050_six_point_accel_correction(double acc[3]); //This is a rough calibration that can be applied to the accelerometer data
-
-void MPU6050_i2c_setup();
 
 void MPU6050_read_byte_register_I2C(uint8_t i2c_dev_add, uint8_t i2c_dev_reg);
 

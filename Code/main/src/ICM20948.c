@@ -12,25 +12,6 @@ void ICM20948_init()
     //CS  : CS
     //SCLK: SCL
 
-
-    //Setup spi at 1 MHz
-    spi_init(spi0, 1000*1000); //Max seems to be 37.5 Mhz
-    gpio_set_function(ICM20948_MISO, GPIO_FUNC_SPI);  //RX on master is MISO
-    gpio_set_function(ICM20948_SCK, GPIO_FUNC_SPI);
-    gpio_set_function(ICM20948_MOSI, GPIO_FUNC_SPI);  //TX on master is MOSI
-
-    gpio_init(ICM20948_CS);
-    gpio_set_dir(ICM20948_CS, GPIO_OUT);
-    gpio_put(ICM20948_CS,1); //CS is set to high, this is the idle state
-
-    //gpio_set_function(PICO_DEFAULT_SPI_CSN_PIN, GPIO_FUNC_SPI); //gpio 17
-    //Make the SPI pins available to picotool
-    bi_decl(bi_4pins_with_func(PICO_DEFAULT_SPI_RX_PIN, PICO_DEFAULT_SPI_TX_PIN, PICO_DEFAULT_SPI_SCK_PIN, PICO_DEFAULT_SPI_CSN_PIN, GPIO_FUNC_SPI));
-
-
-    //SPI format: 8 bits
-    spi_set_format(spi0, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST); //CPOL: Clock Polarity, CPOL = 0 means active high. CPHA: Clock Phase, this indicates where the data is sampled. CPHA = 0 means the data is sampled/latched on the rising edge
-
     //Turn off sleep mode
     ICM20948_read_modify_write_register(ICM20948_PWR_MGMT_1, 0, 1 << ICM20948_SLEEP,ICM20948_CS);
 

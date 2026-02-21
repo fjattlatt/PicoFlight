@@ -7,19 +7,6 @@
    GND (pin 38)  -> GND on MPU6050 board
 */
 
-
-void MPU6050_i2c_setup()
-{
-    // This example will use I2C0 on the default SDA and SCL pins (4, 5 on a Pico)
-    i2c_init(i2c0, 400 * 1000); //i2c0 = i2c_default
-    gpio_set_function(MPU6050_I2C_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(MPU6050_I2C_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(MPU6050_I2C_SDA);
-    gpio_pull_up(MPU6050_I2C_SCL);
-    // Make the I2C pins available to picotool
-    bi_decl(bi_2pins_with_func(MPU6050_I2C_SDA, MPU6050_I2C_SCL, GPIO_FUNC_I2C));
-}
-
 void MPU6050_read_byte_register_I2C(uint8_t i2c_dev_add, uint8_t i2c_dev_reg)
 {
     uint8_t read_buffer = i2c_dev_reg;
@@ -65,7 +52,6 @@ void MPU6050_setup()
 
 void MPU6050_init()
 {
-    MPU6050_i2c_setup();
     MPU6050_reset();
     MPU6050_setup();
 }
