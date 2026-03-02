@@ -9,10 +9,8 @@ Code/Matlab
 Code/Todo.txt
 Code/main/.vscode
 Code/main/build
-Code/CProgramming/.vscode
-Code/CProgramming/main.exe
-Code/LMSolver/.vscode
-Code/LMSolver/main.exe
+Code/CProgramming/
+Code/LMSolver/
 Code/*.zip
 Code/Cstuff
 Code/Main Flight Controller Components.txt
