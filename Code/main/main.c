@@ -47,10 +47,10 @@ int main()
         Main_run(&controllerData, &receiverData, &estimatorData, h);
         
         Estimator_R_to_euler(estimatorData.R_hat, eul);
-        LinAlg_vecscalmult(N,eul, eul, 180.f/PI);
-        LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/PI);
-        LinAlg_vecscalmult(N,estimatorData.w, wRaw, 180.f/PI);
-        LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.f/3.14159f);
+        LinAlg_vecscalmult(N,eul, eul, 180.0/PI);
+        LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.0/PI);
+        LinAlg_vecscalmult(N,estimatorData.w, wRaw, 180.0/PI);
+        LinAlg_vecscalmult(N,estimatorData.b_hat, bias, 180.0/3.141590);
         LinAlg_colvecs2mat3x3(mat,eul,bias,wRaw);
         LinAlg_printmat(N,N,mat);
 
