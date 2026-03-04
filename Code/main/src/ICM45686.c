@@ -42,7 +42,7 @@ void icm45686_init()
     while(1){
         icm45686_get_imu_data(acc,gyr);
         linalg_printvec(3,gyr);
-        sleep_ms(20);
+        sleep_ms(10);
     }
 
 }
@@ -132,6 +132,9 @@ void icm45686_set_measurement_ranges(uint8_t gyro_fs, uint8_t accel_fs)
     if(valid_accel_fs){
         icm45686_read_modify_write_register(ICM45686_ACCEL_CONFIG0, accel_fs, ICM45686_ACCEL_FS_MASK,ICM45686_CS);
     }
+
+    PRINTNUM("gyro sense = %f  ", gyro_sensitivity);
+    PRINTNUM("accel sense = %f  \n", accel_sensitivity);
 }
 
 void icm45686_set_odr_frequency(uint8_t gyro_odr, uint8_t accel_odr)
@@ -325,7 +328,7 @@ void icm45686_get_imu_data(double acc[3], double gyr[3])
     int16_t gyr_y = (msb_y << 8) | lsb_y;
     int16_t gyr_z = (msb_z << 8) | lsb_z;
 
-    double d2r = 3.14159265/180;
+    double d2r = 3.14159265/180.0;
 
     gyr[0] =   gyr_y/gyro_sensitivity*d2r;
     gyr[1] =   gyr_x/gyro_sensitivity*d2r;

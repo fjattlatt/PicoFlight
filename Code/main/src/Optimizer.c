@@ -5,14 +5,16 @@
 //Total RAM required from this is approx 200kB, well within RP2350 RAM of 512kB, but optimizations can be done
 double theta[PARAMETER_COUNT];
 double d_theta[PARAMETER_COUNT]; //72B, parameter increment
-double J[SAMPLE_COUNT][PARAMETER_COUNT]; //72kB
-double JT[PARAMETER_COUNT][SAMPLE_COUNT]; //72kB
+double J[SAMPLE_COUNT][PARAMETER_COUNT]; //Jacobian, 72kB
+double JT[PARAMETER_COUNT][SAMPLE_COUNT]; //Jacobian transposed, 72kB
 double JTJ[PARAMETER_COUNT][PARAMETER_COUNT]; //648B
 double residue_vec[SAMPLE_COUNT]; //8kB
 double gradient_vec[PARAMETER_COUNT];
 Sample samples[SAMPLE_COUNT];//24kB
 
-double optimizer_evaluate_ri(int param_count, double opt_params[param_count], double si[3])
+double optimizer_evaluate_ri(int param_count,
+                             double opt_params[param_count],
+                             double si[3])
 {
     //opt_params = [Ba Bb Bc Px Py Px S0 S1 S2]
     double ri, ui, vi, wi;
@@ -28,7 +30,10 @@ double optimizer_evaluate_ri(int param_count, double opt_params[param_count], do
     return ri;
 }
 
-void optimizer_evaluate_gradient_ri(int param_count, double opt_params[param_count], double si[3], double grad_ri[param_count])
+void optimizer_evaluate_gradient_ri(int param_count,
+                                    double opt_params[param_count],
+                                    double si[3],
+                                    double grad_ri[param_count])
 {
     double Ba = opt_params[0];
     double Bb = opt_params[1];
@@ -53,7 +58,11 @@ void optimizer_evaluate_gradient_ri(int param_count, double opt_params[param_cou
     grad_ri[8] = 2*vi*wi;
 }
 
-void optimizer_evaluate_r_vec(int param_count, int sample_count, double opt_params[param_count], const Sample* samples, double r_vec[sample_count])
+void optimizer_evaluate_r_vec(int param_count,
+                              int sample_count,
+                              double opt_params[param_count],
+                              const Sample* samples,
+                              double r_vec[sample_count])
 {
     double si[3];
     for(int i = 0; i < sample_count; i++){
@@ -64,7 +73,11 @@ void optimizer_evaluate_r_vec(int param_count, int sample_count, double opt_para
     }
 }
 
-void optimizer_evaluate_jacobian_r(int param_count, int sample_count, double opt_params[param_count], const Sample* samples, double J[sample_count][param_count])
+void optimizer_evaluate_jacobian_r(int param_count,
+                                   int sample_count,
+                                   double opt_params[param_count],
+                                   const Sample* samples,
+                                   double J[sample_count][param_count])
 {
     //The jacobian of r_vec is a matrix where each row is a transposed gradient of ri
     double grad_ri[9];
@@ -80,7 +93,11 @@ void optimizer_evaluate_jacobian_r(int param_count, int sample_count, double opt
     }
 }
 
-void optimizer_evaluate_gradient_r(int param_count, int sample_count, double g[param_count], double JT[param_count][sample_count], double r_vec[sample_count])
+void optimizer_evaluate_gradient_r(int param_count,
+                                   int sample_count,
+                                   double g[param_count],
+                                   double JT[param_count][sample_count],
+                                   double r_vec[sample_count])
 {
     //g = JT*r
     linalg_zerovec(param_count,g);
@@ -91,7 +108,10 @@ void optimizer_evaluate_gradient_r(int param_count, int sample_count, double g[p
     }
 }
 
-void optimizer_set_initial_guess_from_samples(int param_count, int sample_count, const Sample* samples, double theta_0[param_count])
+void optimizer_set_initial_guess_from_samples(int param_count,
+                                              int sample_count,
+                                              const Sample* samples,
+                                              double theta_0[param_count])
 {
     //Optimally the struct array should be sorted such that all values can be used, but rn we just use the largest and smallest value in each dimension.
     double max_x = 0, min_x = 0;

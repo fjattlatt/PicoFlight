@@ -9,7 +9,7 @@
 #include "headers/config.h"
 #include <stdlib.h>
 
-#define PI 3.14159265F
+#define PI 3.14159265
 
 typedef struct{
     int N;

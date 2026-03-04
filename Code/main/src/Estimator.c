@@ -126,7 +126,6 @@ void estimator_estimate_attitude(estStruct* est_data,double h){
         linalg_normalize(est_data->n,est_data->m,est_data->v2);
     }
     
-    
     linalg_mattranspose(est_data->n,est_data->n,est_data->rot_mat_hat, est_data->rot_mat_hat_transposed);
     //Create v1_hat
     linalg_matvecmul(est_data->n,est_data->n,est_data->rot_mat_hat_transposed, est_data->ni3, est_data->v1_hat);
@@ -166,7 +165,6 @@ void estimator_estimate_attitude(estStruct* est_data,double h){
     //Also do a lowpass of w_hat
     estimator_vec_low_pass(est_data->n,est_data->w_hat_f, est_data->w_hat, h / est_data->lambda);
 }
-
 
 void estimator_find_current_mag_direction(estStruct* est_data){
     //This function should only run when the magnetometer is stationary at roll = pitch = 0
@@ -231,8 +229,8 @@ void estimator_set_initial_gyro_bias(estStruct* est_data)
 
 void estimator_get_imu_data(estStruct* est_data)
 {
-    // MPU6050_get_imu_data(est_data->a, est_data->w);
-    // MPU6050_six_point_accel_correction(est_data->a);
+    // mpu6050_get_imu_data(est_data->a, est_data->w);
+    // mpu6050_six_point_accel_correction(est_data->a);
     // icm20948_get_imu_data(est_data->a, est_data->w);
     icm45686_get_imu_data(est_data->a, est_data->w);
 }
