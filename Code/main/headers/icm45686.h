@@ -6,6 +6,7 @@
 #include "headers/bus.h"
 #include "headers/linalg.h"
 #include "hardware/pwm.h"
+#include "hardware/clocks.h"
 
 void icm45686_init();
 
@@ -23,6 +24,8 @@ void icm45686_set_clock_source();
 
 void icm45686_set_rp2350_pwm_signal(); //Sets PWM frequency at 50% duty cycle
 
+void icm45686_set_rp2350_clock_out();
+
 void icm45686_read_from_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
 
 void icm45686_write_to_register(uint8_t dev_register, uint8_t* tx_buf, uint8_t* rx_buf, uint8_t n_bytes, uint8_t cs_pin);
@@ -36,7 +39,9 @@ void icm45686_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_
 void icm45686_read_modify_write_indirect_register(uint16_t bank, uint8_t ireg, uint8_t ireg_value, uint8_t mask);
 
 #define ICM45686_CS 6
-#define ICM45686_PICO_CLOCK_PIN 7
+//#define ICM45686_PICO_CLOCK_PIN 7
+//gpios connected to the clock system are 21 23 24 25
+#define ICM45686_PICO_CLOCK_PIN 21 //Conflict with servo! But is the only clock pin available on the pico 2
 
 //Registers
 #define ICM45686_ACCEL_DATA_X1 0x00

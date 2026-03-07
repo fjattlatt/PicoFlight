@@ -54,6 +54,7 @@ void mpu6050_init()
 {
     mpu6050_reset();
     mpu6050_setup();
+    sleep_ms(100); //Let the gyro start
 }
 
 void mpu6050_six_point_accel_correction(double acc[3])

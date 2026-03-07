@@ -26,7 +26,8 @@ void icm45686_init()
     icm45686_set_power_modes(ICM45686_GYRO_OFF, ICM45686_ACCEL_OFF);
     sleep_ms(50);
 
-    icm45686_set_rp2350_pwm_signal();
+    //icm45686_set_rp2350_pwm_signal();
+    icm45686_set_rp2350_clock_out();
     sleep_ms(200); //Let clock stabilize
     icm45686_set_clock_source();
 
@@ -177,6 +178,13 @@ void icm45686_set_data_endianness()
     icm45686_read_modify_write_indirect_register(ICM45686_IPREG_TOP1, ICM45686_SREG_CTRL, 1 << ICM45686_SREG_DATA_ENDIAN_SEL , 1 << ICM45686_SREG_DATA_ENDIAN_SEL);
 }
 
+void icm45686_set_rp2350_clock_out()
+{
+    gpio_set_function(ICM45686_PICO_CLOCK_PIN, GPIO_FUNC_GPCK);
+    gpio_set_drive_strength(ICM45686_PICO_CLOCK_PIN, GPIO_DRIVE_STRENGTH_2MA);
+    clock_gpio_init_int_frac16(ICM45686_PICO_CLOCK_PIN,CLOCKS_CLK_GPOUT0_CTRL_AUXSRC_VALUE_XOSC_CLKSRC,375,0);
+}
+
 void icm45686_set_rp2350_pwm_signal()
 {
     gpio_set_function(ICM45686_PICO_CLOCK_PIN, GPIO_FUNC_PWM);
@@ -186,7 +194,7 @@ void icm45686_set_rp2350_pwm_signal()
     pwm_config_set_wrap(&config, PWM_WRAP_VALUE);
     pwm_init(slice, &config, true);
     pwm_set_enabled(slice, true);
-    pwm_set_chan_level(slice, 1, PWM_WRAP_VALUE/2); //Set to 50% duty
+    pwm_set_chan_level(slice, ICM45686_PICO_CLOCK_PIN % 2, PWM_WRAP_VALUE/2); //Set to 50% duty
 }
 
 void icm45686_read_indirect_register(uint16_t bank, uint8_t ireg, uint8_t* ireg_value)

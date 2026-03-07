@@ -41,47 +41,42 @@ int main()
     double h = 0.05;
     double mat[3][3];
     sleep_ms(1000);
+    int counter = 0;
 
-    while(1){
-        // icm45686_get_imu_data(acc,gyr);
-        // linalg_veccopy(3,gyr, estimator_data.w);
-        // linalg_veccopy(3,acc, estimator_data.a);
-        estimator_estimate_attitude(&estimator_data, h);
-        //test_func(&estimator_data, h);
-        if(linalg_vecnorm(3,estimator_data.a) > 1.15 || linalg_vecnorm(3,estimator_data.a) < 0.85){
-            PRINTNUM("ACCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC norm = %f\n", linalg_vecnorm(3,estimator_data.a));
-        }
-        // linalg_vecscalmult(3,gyr,gyr,180.0/3.14159);
-        // linalg_printvec(3,gyr);
-        PRINT("fhgjfhghfkdhfhfhhgjrhjghfdjkghfdhgjkfdhjkgfdkjghkfdhjhjhjhjhjhjhhhjhjhjhhgkdfhgfg\n");
-        sleep_ms(1);
-    }
+    
+
+    // while(1){
+    //     // icm45686_get_imu_data(acc,gyr);
+    //     // linalg_veccopy(3,gyr, estimator_data.w);
+    //     // linalg_veccopy(3,acc, estimator_data.a);
+    //     estimator_estimate_attitude(&estimator_data, h);
+    //     // test_func(&estimator_data, h);
+    //     if(linalg_vecnorm(3,estimator_data.a) > 1.15 || linalg_vecnorm(3,estimator_data.a) < 0.85){
+    //         PRINTNUM("ACCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC norm = %f\n", linalg_vecnorm(3,estimator_data.a));
+    //     }
+    //     // linalg_vecscalmult(3,gyr,gyr,180.0/3.14159);
+    //     // linalg_printvec(3,gyr);
+    //     PRINT("kkkkkkkkkkkkkk\n");
+    //     sleep_ms(1);
+    // }
 
     linalg_zeromat(3,3,mat);
     linalg_zerovec(3,bias);
-    uint32_t counter = 0;
 
     while (true)
     {
         uint64_t start = time_us_64();
         Main_run(&controller_data, &receiver_data, &estimator_data, h);
         
-        // estimator_rot_mat_to_euler(estimator_data.rot_mat_hat, eul);
-        // linalg_vecscalmult(N,eul, eul, 180.0/PI);
-        // linalg_vecscalmult(N,estimator_data.b_hat, bias, 180.0/PI);
-        // linalg_vecscalmult(N,estimator_data.w, wRaw, 180.0/PI);
-        // linalg_vecscalmult(N,estimator_data.b_hat, bias, 180.0/3.141590);
-        // linalg_colvecs2mat3x3(mat,eul,bias,wRaw);
-
-        if((counter % 100) == 0){
-            //linalg_printmat(N,N,mat);
-            //linalg_printvec(3,bias);
-            PRINT("fhgjfhghfkfg\n");
-        }
+        estimator_rot_mat_to_euler(estimator_data.rot_mat_hat, eul);
+        linalg_vecscalmult(N,eul, eul, 180.0/PI);
+        linalg_vecscalmult(N,estimator_data.b_hat, bias, 180.0/PI);
+        linalg_vecscalmult(N,estimator_data.w, wRaw, 180.0/PI);
+        linalg_vecscalmult(N,estimator_data.b_hat, bias, 180.0/3.141590);
+        linalg_colvecs2mat3x3(mat,eul,bias,wRaw);
+        linalg_printmat(3,3,mat);
         
-        counter++;
-        
-        sleep_ms(3);
+        sleep_ms(5);
         h = (time_us_64() - start)/1e6;
     }
 }
@@ -105,7 +100,7 @@ void Main_init(contStruct* cont_data, recStruct* rec_data, estStruct* est_data)
 
 void Main_run(contStruct* cont_data, recStruct* rec_data, estStruct* est_data, double h)
 {
-    //estimator_estimate_attitude(est_data, h);
+    estimator_estimate_attitude(est_data, h);
     //controller_run_quadcopter(cont_data, rec_data, est_data, h);
 }
 
